@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Local Qwen3.6",
+    "vendor": "customendpoint",
+    "apiType": "chat-completions",
+    "models": [
+      {
+        "id": "qwen3.6-35b-a3b",
+        "name": "Local Qwen3.6 35B-A3B",
+        "url": "http://127.0.0.1:8080/v1/chat/completions",
+        "toolCalling": true,
+        "vision": false,
+        "maxInputTokens": 120000,
+        "maxOutputTokens": 16384
+      }
+    ]
+  }
+]

@@ -1,0 +1,36 @@
+dist/subagent-*.whl -- provenance
+=================================
+
+Source worktree : <subagent-mcp checkout>
+Branch          : omp-driver
+Commit          : 7531144 (P2c: run on Windows; supersedes f73563c)
+                  (git status --porcelain was empty when this hash was read;
+                   the worktree was clean, so the hash pins the wheel content)
+
+STATUS: the wheel itself is NOT present in this directory yet. It could not
+be built in the packaging sandbox: every command that names the reference
+worktree is denied there, including the one command the brief authorizes
+(`uv build --wheel --out-dir <workspace>/dist` run in that directory).
+Nothing in the package depends on a specific wheel hash, so the coordinator
+can build it once, on any machine with uv, before running
+`install.ps1 -WithSubagent`:
+
+    cd <subagent-mcp checkout>
+    uv build --wheel --out-dir <this repo>/dist
+    git -C <subagent-mcp checkout> rev-parse HEAD
+    # must print the commit hash above; if it does not, replace this file
+
+What the build produces (pyproject.toml at that commit, hatchling backend,
+version 0.1.0):
+
+    subagent-0.1.0-py3-none-any.whl
+
+with the console scripts install.ps1 relies on:
+
+    subagent     = subagent.cli:main          (doctor / init / run ...)
+    subagent-mcp = subagent.mcp_server:main   (the MCP server VS Code runs)
+
+install.ps1 -WithSubagent expects exactly one dist\subagent-*.whl next to
+install.ps1, copies it to <InstallDir>\subagent\, and installs it with:
+
+    uv tool install --python 3.12 --force <InstallDir>\subagent\<wheel file>

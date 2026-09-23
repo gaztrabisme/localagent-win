@@ -1,0 +1,36 @@
+# subagent config written by localagent's install.ps1 (-WithSubagent).
+# The installer fills two double-brace placeholders below: OMP_BINARY (full
+# path of omp.exe) and PORT (the local llama-server port).
+
+[core]
+default_provider = "local"
+
+[providers.local]
+# The worker is "omp -p --mode json --no-session": one one-shot JSON turn per
+# process, model picked from omp's own config (~/.omp/agent/models.yml).
+driver = "omp"
+binary = '{{OMP_BINARY}}'
+model = "qwen3.6-35b-a3b"
+local = true
+max_agents = 1
+max_steps = 80
+run_timeout = 3600
+idle_timeout = 900
+
+[providers.local.health]
+# The llama.cpp server answers on 127.0.0.1 only; a cold load (23 GB of model
+# weights read from disk) can take minutes.
+kind = "llamacpp"
+candidates = ["http://127.0.0.1:{{PORT}}"]
+warm = true
+cold_load_seconds = 600
+
+[providers.local.pricing]
+# Local compute: free per token, the wall clock is the cost.
+kind = "local"
+usd = 0
+
+[guard]
+# omp has no PreToolUse hook the guard can attach to, so a child on this
+# provider runs unguarded; the MCP delegation needs this set to allow it.
+allow_unguarded = true
