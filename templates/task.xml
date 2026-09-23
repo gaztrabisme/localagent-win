@@ -42,7 +42,7 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>{{INSTALLDIR}}\llama\llama-server.exe</Command>
+      <Command>%SystemRoot%\System32\cmd.exe</Command>
       <Arguments>{{ARGS}}</Arguments>
       <WorkingDirectory>{{INSTALLDIR}}\llama</WorkingDirectory>
     </Exec>

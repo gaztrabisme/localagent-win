@@ -80,12 +80,13 @@ After the install, the only outbound connections the package makes are the
 downloads you start yourself with `localagent model`. omp is configured to
 use the local server as its model provider.
 
-**Startup.** A Scheduled Task named **"LocalAgent Server"** starts
-`%LOCALAPPDATA%\localagent\llama\llama-server.exe` at logon. It runs under
-the user's own account with limited rights (no elevation). The task starts
-the executable directly: there is no script host and no hidden PowerShell.
-While the server runs, a console window titled `llama-server.exe` is open on
-the desktop.
+**Startup.** A Scheduled Task named **"LocalAgent Server"** runs at logon
+under the user's own account with limited rights (no elevation). Its action
+is `%SystemRoot%\System32\cmd.exe /c start "LocalAgent Server" /min
+"%LOCALAPPDATA%\localagent\llama\llama-server.exe" <arguments>`: cmd.exe
+starts the server and exits. There is no PowerShell and no hidden script.
+The server starts minimized in the taskbar as "LocalAgent Server". Closing
+that window stops the server; `localagent start` brings it back.
 
 **Unsigned executables.** `llama-server.exe` (llama.cpp) and `omp.exe` are
 not code-signed. SmartScreen or AppLocker may need an exception for:
@@ -292,8 +293,9 @@ using the CPU.
 - **Install went wrong**: read `%LOCALAPPDATA%\localagent\install.log`. Every
   step is timestamped and a failure names the step.
 - **Server misbehaving**: `localagent status`, then `localagent logs -Tail 200`.
-- **The `llama-server.exe` console window**: that window is the server.
-  Closing it stops the server; `localagent start` brings it back.
+- **The "LocalAgent Server" window in the taskbar**: that window is the
+  server, started minimized. Closing it stops the server; `localagent start`
+  brings it back.
 - **Model missing or wrong size**: run the installer again; the download resumes.
 - **"Visual C++ runtime missing"**: step 2 could not install it (approval
   declined, or no admin account available). Install "Microsoft Visual C++

@@ -2527,6 +2527,52 @@ function ConvertTo-TaskArguments {
   return [System.Security.SecurityElement]::Escape($line)
 }
 
+function Get-TaskActionArguments {
+  <#
+  .SYNOPSIS
+    The Arguments text of the logon task: cmd.exe starts llama-server minimized.
+
+  .DESCRIPTION
+    The task's Command is %SystemRoot%\System32\cmd.exe and its Arguments are
+      /c start "LocalAgent Server" /min "<exe>" <server argv>
+    so the server window starts minimized in the taskbar and cmd.exe exits
+    at once. The quoted window title must be the first quoted token after
+    `start`, otherwise start takes the exe path as the title. The server
+    argv is joined with ConvertTo-TaskArguments. Returns the plain line;
+    -Xml escapes it for the task XML.
+
+  .PARAMETER ServerExe
+    Full path of llama-server.exe.
+
+  .PARAMETER Argv
+    llama-server arguments (ConvertTo-ServerArgs).
+
+  .PARAMETER Xml
+    XML-escape the result for templates/task.xml.
+
+  .OUTPUTS
+    System.String
+
+  .EXAMPLE
+    Get-TaskActionArguments -ServerExe $exe -Argv $argv -Xml
+  #>
+  param(
+    [Parameter(Mandatory)][string]$ServerExe,
+    [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Argv,
+    [switch]$Xml
+  )
+  $title = [string](Get-LocalAgentConstants).TaskName
+  $line = '/c start "{0}" /min "{1}"' -f $title, $ServerExe
+  $rest = ConvertTo-TaskArguments -Argv $Argv -Raw
+  if ("$rest" -ne '') {
+    $line = $line + ' ' + $rest
+  }
+  if ($Xml) {
+    return [System.Security.SecurityElement]::Escape($line)
+  }
+  return $line
+}
+
 function ConvertTo-TaskXml {
   <#
   .SYNOPSIS
@@ -2534,9 +2580,8 @@ function ConvertTo-TaskXml {
 
   .DESCRIPTION
     Replaces {{USER}} (LogonTrigger/Principal user, e.g. 'DESKTOP\gary'),
-    {{INSTALLDIR}} (the llama-server.exe command and its working
-    directory) and {{ARGS}} (the <Arguments> text, already XML-escaped by
-    ConvertTo-TaskArguments), then fails if any {{...}} placeholder is
+    {{INSTALLDIR}} (the working directory) and {{ARGS}} (the <Arguments> text, already XML-escaped by
+    Get-TaskActionArguments -Xml), then fails if any {{...}} placeholder is
     left, so a renamed placeholder cannot slip through silently. User and
     InstallDir are XML-escaped here.
 
@@ -2547,10 +2592,10 @@ function ConvertTo-TaskXml {
     Account the task runs as, e.g. "$env:USERDOMAIN\$env:USERNAME".
 
   .PARAMETER InstallDir
-    Package root; the action runs <InstallDir>\llama\llama-server.exe.
+    Package root; the action's working directory is <InstallDir>\llama.
 
   .PARAMETER Arguments
-    XML-escaped llama-server argument line (ConvertTo-TaskArguments).
+    XML-escaped task argument line (Get-TaskActionArguments -Xml).
 
   .OUTPUTS
     System.String (the filled task XML, ready for Register-ScheduledTask -Xml)
@@ -2657,7 +2702,9 @@ function Register-LocalAgentTask {
     and registers it with Register-ScheduledTask -Force. When that fails,
     the same XML goes through `schtasks /Create /XML` (a /TR command line
     is capped at 261 characters, too short for this argv). The task runs
-    <InstallDir>\llama\llama-server.exe directly under the current user.
+    cmd.exe /c start /min <InstallDir>\llama\llama-server.exe under the
+    current user (Get-TaskActionArguments), so the server window starts
+    minimized.
     Used by install.ps1 and by `localagent restart|config|bench|model`.
 
   .PARAMETER InstallDir
@@ -2690,8 +2737,8 @@ function Register-LocalAgentTask {
   $config = Read-LocalAgentConfig -Path $ConfigPath
   $argv = ConvertTo-ServerArgs -Config $config -ModelPath $paths.ModelFile -LogFile $paths.ServerLog
   $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-  $xml = ConvertTo-TaskXml -Path $TemplatePath -User $user -InstallDir $paths.InstallDir -Arguments (ConvertTo-TaskArguments -Argv $argv)
   $exe = Join-Path -Path $paths.Llama -ChildPath 'llama-server.exe'
+  $xml = ConvertTo-TaskXml -Path $TemplatePath -User $user -InstallDir $paths.InstallDir -Arguments (Get-TaskActionArguments -ServerExe $exe -Argv $argv -Xml)
 
   $method = 'Register-ScheduledTask'
   try {
@@ -2715,8 +2762,8 @@ function Register-LocalAgentTask {
   return [pscustomobject]@{
     Method    = $method
     User      = $user
-    Execute   = $exe
-    Arguments = (ConvertTo-TaskArguments -Argv $argv -Raw)
+    Execute   = '%SystemRoot%\System32\cmd.exe'
+    Arguments = (Get-TaskActionArguments -ServerExe $exe -Argv $argv)
   }
 }
 
@@ -3607,6 +3654,7 @@ Export-ModuleMember -Function @(
   'Invoke-Download',
   'ConvertTo-TaskXml',
   'ConvertTo-TaskArguments',
+  'Get-TaskActionArguments',
   'Invoke-LogRotation',
   'Register-LocalAgentTask',
   'Resolve-ModelSpec',

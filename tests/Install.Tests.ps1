@@ -16,11 +16,11 @@ Describe 'ConvertTo-TaskXml' {
     $xml.Contains('{{') | Should -BeFalse
   }
 
-  It 'runs llama-server.exe directly with the given arguments and working directory' {
-    $xml = ConvertTo-TaskXml -Path $script:template -User 'DESKTOP-ABC\gary' -InstallDir 'C:\la\' -Arguments '-m &quot;C:\a b\m.gguf&quot; --port 8080'
+  It 'runs cmd.exe with the given arguments in the llama working directory' {
+    $xml = ConvertTo-TaskXml -Path $script:template -User 'DESKTOP-ABC\gary' -InstallDir 'C:\la\' -Arguments '/c start &quot;LocalAgent Server&quot; /min &quot;C:\la\llama\llama-server.exe&quot; --port 8080'
     $xml | Should -BeLike '*<UserId>DESKTOP-ABC\gary</UserId>*'
-    $xml | Should -BeLike '*<Command>C:\la\llama\llama-server.exe</Command>*'
-    $xml | Should -BeLike '*<Arguments>-m &quot;C:\a b\m.gguf&quot; --port 8080</Arguments>*'
+    $xml | Should -BeLike '*<Command>%SystemRoot%\System32\cmd.exe</Command>*'
+    $xml | Should -BeLike '*<Arguments>/c start &quot;LocalAgent Server&quot; /min &quot;C:\la\llama\llama-server.exe&quot; --port 8080</Arguments>*'
     $xml | Should -BeLike '*<WorkingDirectory>C:\la\llama</WorkingDirectory>*'
     $xml | Should -Not -BeLike '*powershell*'
     $xml | Should -Not -BeLike '*WindowStyle*'
@@ -30,8 +30,8 @@ Describe 'ConvertTo-TaskXml' {
   It 'XML-escapes the user and install dir' {
     $xml = ConvertTo-TaskXml -Path $script:template -User 'PC\a&b' -InstallDir 'C:\R&D' -Arguments ''
     $xml | Should -BeLike '*<UserId>PC\a&amp;b</UserId>*'
-    $xml | Should -BeLike '*<Command>C:\R&amp;D\llama\llama-server.exe</Command>*'
-    ([xml]$xml).Task.Actions.Exec.Command | Should -Be 'C:\R&D\llama\llama-server.exe'
+    $xml | Should -BeLike '*<WorkingDirectory>C:\R&amp;D\llama</WorkingDirectory>*'
+    ([xml]$xml).Task.Actions.Exec.WorkingDirectory | Should -Be 'C:\R&D\llama'
   }
 
   It 'keeps the required task settings from the template' {
@@ -70,6 +70,22 @@ Describe 'ConvertTo-TaskArguments' {
     $argv = @('-m', 'C:\R&D dir\m.gguf', '--alias', 'q')
     $xml = ConvertTo-TaskXml -Path $template -User 'u' -InstallDir 'C:\la' -Arguments (ConvertTo-TaskArguments -Argv $argv)
     ([xml]$xml).Task.Actions.Exec.Arguments | Should -Be (ConvertTo-TaskArguments -Argv $argv -Raw)
+  }
+}
+
+Describe 'Get-TaskActionArguments' {
+  It 'starts llama-server minimized with the window title as the first quoted token' {
+    $line = Get-TaskActionArguments -ServerExe 'C:\Users\Jane Doe\la\llama\llama-server.exe' -Argv @('-m', 'C:\m.gguf', '--port', '8080')
+    $line | Should -Be '/c start "LocalAgent Server" /min "C:\Users\Jane Doe\la\llama\llama-server.exe" -m C:\m.gguf --port 8080'
+  }
+
+  It 'XML-escapes with -Xml and round-trips through the task XML' {
+    $template = Join-Path -Path $PSScriptRoot -ChildPath '..\templates\task.xml'
+    $argv = @('-m', 'C:\R&D dir\m.gguf')
+    $escaped = Get-TaskActionArguments -ServerExe 'C:\la\llama\llama-server.exe' -Argv $argv -Xml
+    $escaped | Should -BeLike '/c start &quot;LocalAgent Server&quot; /min*&amp;*'
+    $xml = ConvertTo-TaskXml -Path $template -User 'u' -InstallDir 'C:\la' -Arguments $escaped
+    ([xml]$xml).Task.Actions.Exec.Arguments | Should -Be (Get-TaskActionArguments -ServerExe 'C:\la\llama\llama-server.exe' -Argv $argv)
   }
 }
 

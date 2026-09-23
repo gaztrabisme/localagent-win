@@ -620,7 +620,7 @@ Describe 'Templates' {
     $xml | Should -BeLike '*<Interval>PT1M</Interval>*'
     $xml | Should -BeLike '*<Count>3</Count>*'
     $xml | Should -BeLike '*{{ARGS}}*'
-    $xml | Should -BeLike '*<Command>{{INSTALLDIR}}\llama\llama-server.exe</Command>*'
+    $xml | Should -BeLike '*<Command>%SystemRoot%\System32\cmd.exe</Command>*'
     $xml | Should -Not -BeLike '*powershell*'
   }
 }
