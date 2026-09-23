@@ -303,10 +303,9 @@ function Step-Tools {
     }
     if (-not (Test-ToolsPython)) {
       Write-Log ('python still missing after winget; falling back to the python.org installer {0}' -f $constants.PythonFallbackUrl)
-      Write-Log 'NOTE: this python.org fallback download is NOT hash-pinned (python.org publishes no per-file checksums on a stable URL); winget is the preferred path.'
-      $exe = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'localagent-python-3.12.14-amd64.exe'
-      Invoke-Download -Url $constants.PythonFallbackUrl -OutFile $exe -Silent:$NonInteractive | Out-Null
-      Write-Log 'running python-3.12.14-amd64.exe /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 (per-user)...'
+      $exe = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath 'localagent-python-3.12.10-amd64.exe'
+      Invoke-Download -Url $constants.PythonFallbackUrl -OutFile $exe -ExpectedSize $constants.PythonFallbackSize -ExpectedSha256 $constants.PythonFallbackSha256 -Silent:$NonInteractive | Out-Null
+      Write-Log 'running python-3.12.10-amd64.exe /quiet InstallAllUsers=0 PrependPath=1 Include_test=0 (per-user)...'
       $proc = Start-Process -FilePath $exe -ArgumentList @('/quiet', 'InstallAllUsers=0', 'PrependPath=1', 'Include_test=0') -Wait -PassThru
       $code = [int]$proc.ExitCode
       Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue

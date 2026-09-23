@@ -152,7 +152,9 @@ function Get-LocalAgentConstants {
     VcRedistUrl    = 'https://aka.ms/vs/17/release/vc_redist.x64.exe'
     PythonMinVersion = '3.10'
     PythonWingetId = 'Python.Python.3.12'
-    PythonFallbackUrl = 'https://www.python.org/ftp/python/3.12.14/python-3.12.14-amd64.exe'
+    PythonFallbackUrl = 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe'
+    PythonFallbackSha256 = '67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb'
+    PythonFallbackSize = 26964224
     GitWingetId    = 'Git.Git'
     GitFallbackUrl = 'https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.5/Git-2.55.0.5-64-bit.exe'
     GitSha256      = 'd065a4e23c3d9a6b5073d609b5be0830227ec3ca053c083ba385061ddfaf94c6'

@@ -106,7 +106,7 @@ exact byte size and SHA256 before using it.
 | omp v18.2.8 coding agent | `https://github.com/can1357/oh-my-pi/releases/download/v18.2.8/omp-windows-x64.exe` | 218,729,472 bytes | yes (SHA256) |
 | Visual C++ 2015-2022 x64 runtime, only when missing | `https://aka.ms/vs/17/release/vc_redist.x64.exe` | varies (Microsoft's current release) | no; Microsoft-signed installer |
 | Python 3.12, only when no Python 3.10+ is present | `winget install --id Python.Python.3.12 --scope user` | varies | winget checks its manifest hash |
-| Python 3.12.14, fallback when winget is missing or fails | `https://www.python.org/ftp/python/3.12.14/python-3.12.14-amd64.exe` | varies | no |
+| Python 3.12.10, fallback when winget is missing or fails | `https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe` | 26,964,224 bytes | yes |
 | git, only when missing | `winget install --id Git.Git --scope user` | varies | winget checks its manifest hash |
 | Git for Windows 2.55.0.5, fallback when winget is missing or fails | `https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.5/Git-2.55.0.5-64-bit.exe` | 65,343,712 bytes | yes (SHA256) |
 | uv 0.12.18, only with `-WithSubagent` | `https://github.com/astral-sh/uv/releases/download/0.12.18/uv-x86_64-pc-windows-msvc.zip` | 17,891,221 bytes | yes (SHA256) |
