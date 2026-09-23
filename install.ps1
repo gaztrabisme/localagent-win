@@ -255,7 +255,17 @@ function Install-ToolViaWinget {
   )
   for ($attempt = 1; $attempt -le 3; $attempt++) {
     Write-Log ('{0}: winget install attempt {1}/3 (id {2}, user scope)...' -f $Label, $attempt, $Id)
-    Use-NativeOutput { & winget.exe install --id $Id -e --silent --accept-package-agreements --accept-source-agreements --scope user | Out-String } | Out-Null
+    # winget.exe is an App Execution Alias. In some contexts (an elevated
+    # prompt on managed PCs) it exists on PATH but cannot start: "The process
+    # has no package identity". Treat that as "no winget" and let the caller
+    # fall back to the vendor installer; retrying cannot help.
+    try {
+      Use-NativeOutput { & winget.exe install --id $Id -e --silent --accept-package-agreements --accept-source-agreements --scope user | Out-String } | Out-Null
+    }
+    catch {
+      Write-Log ('{0}: winget.exe could not start ({1}); using the vendor installer instead.' -f $Label, $_.Exception.Message)
+      return $false
+    }
     $code = $LASTEXITCODE
     if ($code -eq 0) {
       Write-Log ('{0}: winget reported success (exit code 0).' -f $Label)
