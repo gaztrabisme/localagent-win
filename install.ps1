@@ -242,8 +242,38 @@ function Step-VcRuntime {
 
 function Test-ToolsPython {
   # True when a real (non-Store-alias) Python 3.10+ answers on PATH.
-  # Test-PythonAvailable does the probing; wrapped here for readable logs.
-  return (Test-PythonAvailable)
+  # Test-PythonAvailable does the probing. When `python` on PATH is not usable
+  # (Store alias first, or PATH not refreshed yet), the usual per-user and
+  # all-users install folders are probed directly; a working one is put at
+  # the front of this session's PATH and added to the user PATH.
+  if (Test-PythonAvailable) {
+    return $true
+  }
+  $roots = @(
+    (Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Programs\Python'),
+    $env:ProgramFiles
+  )
+  foreach ($root in $roots) {
+    if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
+    $candidates = @(Get-ChildItem -LiteralPath $root -Directory -Filter 'Python3*' -ErrorAction SilentlyContinue |
+      Sort-Object -Property Name -Descending)
+    foreach ($c in $candidates) {
+      $exe = Join-Path -Path $c.FullName -ChildPath 'python.exe'
+      if (-not (Test-Path -LiteralPath $exe)) { continue }
+      if (Test-PythonAvailable -CommandName $exe) {
+        Write-Log ('python found at {0}; adding it to PATH.' -f $exe)
+        $env:PATH = '{0};{0}\Scripts;{1}' -f $c.FullName, $env:PATH
+        Add-UserPath -Dir $c.FullName -NoBroadcast | Out-Null
+        Add-UserPath -Dir (Join-Path -Path $c.FullName -ChildPath 'Scripts') -NoBroadcast | Out-Null
+        return $true
+      }
+      $probe = Invoke-NativeProbe -FilePath $exe -Arguments '--version' -TimeoutSeconds 60
+      Write-Log ('python at {0} did not answer --version (exit {1}, timed out {2}): {3}' -f $exe, $probe.ExitCode, $probe.TimedOut, (("$($probe.Output)") -replace "`r?`n", ' '))
+    }
+  }
+  $onPath = @(Get-Command -Name 'python' -All -ErrorAction SilentlyContinue | ForEach-Object { $_.Source })
+  Write-Log ('python on PATH: {0}' -f ($(if ($onPath.Count) { $onPath -join ', ' } else { 'none' })))
+  return $false
 }
 
 function Install-ToolViaWinget {
